@@ -1,27 +1,27 @@
 <?php
 
-use Laravel\Fortify\Features;
+namespace Tests\Feature\Auth;
 
-beforeEach(function () {
-    $this->skipUnlessFortifyHas(Features::registration());
-});
+use Livewire\Volt\Volt;
 
 test('registration screen can be rendered', function () {
-    $response = $this->get(route('register'));
+    $response = $this->get('/register');
 
-    $response->assertOk();
+    $response
+        ->assertOk()
+        ->assertSeeVolt('pages.auth.register');
 });
 
 test('new users can register', function () {
-    $response = $this->post(route('register.store'), [
-        'name' => 'John Doe',
-        'email' => 'test@example.com',
-        'password' => 'password',
-        'password_confirmation' => 'password',
-    ]);
+    $component = Volt::test('pages.auth.register')
+        ->set('name', 'Test User')
+        ->set('email', 'test@example.com')
+        ->set('password', 'password')
+        ->set('password_confirmation', 'password');
 
-    $response->assertSessionHasNoErrors()
-        ->assertRedirect(route('dashboard', absolute: false));
+    $component->call('register');
+
+    $component->assertRedirect(route('dashboard', absolute: false));
 
     $this->assertAuthenticated();
 });

@@ -1,0 +1,53 @@
+[90m= [39m[34;4mIlluminate\Database\Eloquent\Collection[39;24m {#7951
+    [34mall[39m: [
+      [34;4mApp\Models\Waybill[39;24m {#9092
+        [34mid[39m: [35m1[39m,
+        [34mreference_no[39m: [32m"[39m[32mEB-2026-000001[39m[32m"[39m,
+        [34mwaybill_no[39m: [32m"[39m[32mWB-2026-000001[39m[32m"[39m,
+        [34mgatepass_no[39m: [36mnull[39m,
+        [34mloaded_at[39m: [32m"[39m[32m2026-08-29 18:00:00[39m[32m"[39m,
+        [34mstatus[39m: [32m"[39m[32mdraft[39m[32m"[39m,
+        [34mprepared_by[39m: [35m1[39m,
+        [34mcreated_at[39m: [32m"[39m[32m2026-08-29 18:00:00[39m[32m"[39m,
+        [34mupdated_at[39m: [32m"[39m[32m2026-08-29 18:00:00[39m[32m"[39m,
+        [34mitems[39m: [34;4mIlluminate\Database\Eloquent\Collection[39;24m {#7930
+          [34mall[39m: [],
+        },
+      },
+      [34;4mApp\Models\Waybill[39;24m {#9094
+        [34mid[39m: [35m3[39m,
+        [34mreference_no[39m: [32m"[39m[32mEB-2026-1788028468[39m[32m"[39m,
+        [34mwaybill_no[39m: [32m"[39m[32mWB-2026-1788028468[39m[32m"[39m,
+        [34mgatepass_no[39m: [36mnull[39m,
+        [34mloaded_at[39m: [32m"[39m[32m2026-08-29 18:34:50[39m[32m"[39m,
+        [34mstatus[39m: [32m"[39m[32mdraft[39m[32m"[39m,
+        [34mprepared_by[39m: [35m1[39m,
+        [34mcreated_at[39m: [32m"[39m[32m2026-08-29 18:34:50[39m[32m"[39m,
+        [34mupdated_at[39m: [32m"[39m[32m2026-08-29 18:34:50[39m[32m"[39m,
+        [34mitems[39m: [34;4mIlluminate\Database\Eloquent\Collection[39;24m {#7963
+          [34mall[39m: [
+            [34;4mApp\Models\WaybillItem[39;24m {#7960
+              [34mid[39m: [35m2[39m,
+              [34mwaybill_id[39m: [35m3[39m,
+              [34mproduct_description[39m: [32m"[39m[32mDequadin 100[39m[32m"[39m,
+              [34mbatch_no[39m: [32m"[39m[32mBATCH002[39m[32m"[39m,
+              [34mno_of_cartons[39m: [35m3[39m,
+              [34mquantity_loaded[39m: [35m60[39m,
+              [34mcreated_at[39m: [32m"[39m[32m2026-08-29 18:45:30[39m[32m"[39m,
+              [34mupdated_at[39m: [32m"[39m[32m2026-08-29 18:45:30[39m[32m"[39m,
+            },
+            [34;4mApp\Models\WaybillItem[39;24m {#7961
+              [34mid[39m: [35m3[39m,
+              [34mwaybill_id[39m: [35m3[39m,
+              [34mproduct_description[39m: [32m"[39m[32mGlucose Classic[39m[32m"[39m,
+              [34mbatch_no[39m: [32m"[39m[32mBATCH001[39m[32m"[39m,
+              [34mno_of_cartons[39m: [35m5[39m,
+              [34mquantity_loaded[39m: [35m100[39m,
+              [34mcreated_at[39m: [32m"[39m[32m2026-08-29 18:45:54[39m[32m"[39m,
+              [34mupdated_at[39m: [32m"[39m[32m2026-08-29 18:45:54[39m[32m"[39m,
+            },
+          ],
+        },
+      },
+    ],
+  }

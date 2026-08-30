@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use App\Livewire\Waybill\WaybillApprovals;
+use Livewire\Livewire;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+
+        Livewire::component('waybill-approvals', WaybillApprovals::class);
     }
 
     /**

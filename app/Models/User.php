@@ -7,6 +7,7 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
@@ -28,7 +29,7 @@ use Laravel\Fortify\TwoFactorAuthenticatable;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
-#[Fillable(['name', 'email', 'password'])]
+#[Fillable(['name', 'email', 'password', 'role'])]
 #[Hidden(['password', 'two_factor_secret', 'two_factor_recovery_codes', 'remember_token'])]
 class User extends Authenticatable implements PasskeyUser
 {
@@ -59,4 +60,55 @@ class User extends Authenticatable implements PasskeyUser
             ? Str::substr($initials, 0, 1).Str::substr($initials, -1)
             : $initials;
     }
+
+    public function preparedWaybills(): HasMany
+    {
+        return $this->hasMany(Waybill::class, 'prepared_by');
+    }
+
+    public function getRoleLabel(): string
+    {
+        return match($this->role) {
+            'admin' => 'Administrator',
+            'dist_officer' => 'Distribution Officer',
+            'warehouse_manager' => 'Warehouse Manager',
+            'auditor' => 'Auditor',
+            'supply_chain_manager' => 'Supply Chain Manager',
+            'viewer' => 'Viewer',
+            default => 'User',
+        };
+    }
+
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isDistOfficer(): bool
+    {
+        return $this->role === 'dist_officer';
+    }
+
+    public function isWarehouseManager(): bool
+    {
+        return $this->role === 'warehouse_manager';
+    }
+
+    public function isAuditor(): bool
+    {
+        return $this->role === 'auditor';
+    }
+
+    public function isSupplyChainManager(): bool
+    {
+        return $this->role === 'supply_chain_manager';
+    }
 }
+
+
+
