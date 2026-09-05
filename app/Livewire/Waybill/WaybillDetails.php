@@ -59,6 +59,12 @@ class WaybillDetails extends Component
         $this->waybill->refresh();
     }
 
+    // Helper to check if the waybill has passed all 3 approval steps
+    public function getIsFullyApprovedProperty(): bool
+    {
+        return $this->waybill->isFullyApproved();
+    }
+
     public function render()
     {
         return view('livewire.waybill.waybill-details');

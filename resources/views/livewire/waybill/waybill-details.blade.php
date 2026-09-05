@@ -28,7 +28,7 @@
                 </div>
                 <div class="flex items-center gap-3">
                     <span class="px-3 py-1 text-sm font-medium rounded-full
-                        @if($waybill->status === 'approved')
+                        @if($waybill->isFullyApproved())
                             bg-green-100 text-green-800
                         @elseif(str_contains($waybill->status, 'pending'))
                             bg-yellow-100 text-yellow-800
@@ -39,6 +39,29 @@
                         @endif">
                         {{ ucfirst(str_replace('_', ' ', $waybill->status)) }}
                     </span>
+
+                    {{-- ========================================== --}}
+                    {{-- NEW: PRINT / PREVIEW BUTTONS --}}
+                    {{-- ========================================== --}}
+                    @if($waybill->isFullyApproved())
+                        {{-- ✅ FULLY APPROVED: Show Print Button --}}
+                        <a href="{{ route('waybills.pdf', $waybill->id) }}"
+                           class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                            🖨️ Print Official Waybill
+                        </a>
+                    @else
+                        {{-- ⏳ PENDING: Show Preview Button only --}}
+                        <a href="{{ route('waybills.preview', $waybill->id) }}" target="_blank"
+                           class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
+                            👁️ Preview Waybill (Draft)
+                        </a>
+
+                        <span class="text-gray-500 text-sm">
+                            <i class="fas fa-lock"></i>
+                            Waiting for: <strong>{{ $waybill->getNextApproverRole() }}</strong>
+                        </span>
+                    @endif
+                    {{-- ========================================== --}}
 
                     {{-- Submit for Approval Button - ONLY for Distribution Officer and ONLY when draft --}}
                     @if($isDistOfficer && $waybill->status === 'draft')
@@ -87,7 +110,7 @@
                         @if($waybill->status === 'draft')
                             This waybill is currently in <strong>Draft</strong> status.
                             <br>Click the <strong>"Submit for Approval"</strong> button above to start the approval process.
-                        @elseif($waybill->status === 'approved')
+                        @elseif($waybill->isFullyApproved())
                             ✅ This waybill has been <strong>Fully Approved</strong>.
                             @if($waybill->gatepass_no)
                                 <br>Gate Pass: <strong>{{ $waybill->gatepass_no }}</strong>

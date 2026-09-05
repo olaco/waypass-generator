@@ -4,7 +4,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\WaybillController;
 use App\Livewire\Waybill\AuditorApprovals;
 use App\Livewire\Waybill\CreateWaybill;
-use App\Livewire\Waybill\DistOfficerWaybills;  // ✅ ADD THIS
+use App\Livewire\Waybill\DistOfficerWaybills;
 use App\Livewire\Waybill\EditWaybill;
 use App\Livewire\Waybill\SupplyChainApprovals;
 use App\Livewire\Waybill\WarehouseApprovals;
@@ -38,7 +38,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/waybills/create', CreateWaybill::class)->name('waybills.create');
 
     // ===== ROLE-BASED ROUTES =====
-    Route::get('/waybills/dist-officer', DistOfficerWaybills::class)->name('waybills.dist-officer');  // ✅ ADD THIS
+    Route::get('/waybills/dist-officer', DistOfficerWaybills::class)->name('waybills.dist-officer');
     Route::get('/waybills/warehouse', WarehouseApprovals::class)->name('waybills.warehouse');
     Route::get('/waybills/auditor', AuditorApprovals::class)->name('waybills.auditor');
     Route::get('/waybills/supply-chain', SupplyChainApprovals::class)->name('waybills.supply-chain');
@@ -53,6 +53,11 @@ Route::middleware('auth')->group(function () {
     Route::get('/waybills', WaybillList::class)->name('waybills.index');
     Route::get('/waybills/{waybill}', WaybillDetails::class)->name('waybills.show');
     Route::get('/waybills/{waybill}/edit', EditWaybill::class)->name('waybills.edit');
+
+    // ✅ NEW PREVIEW ROUTE (Allowed at every stage)
+    Route::get('/waybills/{waybill}/preview', [WaybillController::class, 'preview'])->name('waybills.preview');
+
+    // ✅ LOCKED PDF ROUTE (Only works if isFullyApproved() returns true)
     Route::get('/waybills/{waybill}/pdf', [WaybillController::class, 'generatePdf'])->name('waybills.pdf');
 });
 
