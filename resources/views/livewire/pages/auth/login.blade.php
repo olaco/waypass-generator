@@ -1,71 +1,105 @@
 <?php
 
-use App\Livewire\Forms\LoginForm;
-use Illuminate\Support\Facades\Session;
+use Laravel\Fortify\Fortify;
 use Livewire\Attributes\Layout;
 use Livewire\Volt\Component;
 
-new #[Layout('layouts.guest')] class extends Component
-{
-    public LoginForm $form;
+new class extends Component {
+    //
+};
 
-    /**
-     * Handle an incoming authentication request.
-     */
-    public function login(): void
-    {
-        $this->validate();
+?>
 
-        $this->form->authenticate();
+<div class="flex min-h-screen flex-col justify-center bg-[#F8F9FA] py-12 sm:px-6 lg:px-8">
 
-        Session::regenerate();
-
-        $this->redirectIntended(default: route('dashboard', absolute: false), navigate: true);
-    }
-}; ?>
-
-<div>
-    <!-- Session Status -->
-    <x-auth-session-status class="mb-4" :status="session('status')" />
-
-    <form wire:submit="login">
-        <!-- Email Address -->
-        <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('form.email')" class="mt-2" />
+    <!-- Header section with Logo -->
+    <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="flex justify-center">
+            <!-- Official Evans Baroque Logo -->
+            <a href="{{ route('home') }}" class="block">
+                <img src="{{ asset('images/evans-baroque-logo.png') }}"
+                     alt="Evans Baroque Ltd"
+                     class="h-12 w-auto object-contain"
+                     style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));">
+            </a>
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
+        <p class="mt-6 text-center text-sm text-gray-600">
+            Sign in to your internal portal
+        </p>
+    </div>
 
-            <x-text-input wire:model="form.password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+    <!-- Login Card -->
+    <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-[480px]">
+        <div class="bg-white py-8 px-4 shadow-sm ring-1 ring-gray-900/5 sm:rounded-lg sm:px-10">
 
-            <x-input-error :messages="$errors->get('form.password')" class="mt-2" />
-        </div>
-
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember" class="inline-flex items-center">
-                <input wire:model="form.remember" id="remember" type="checkbox" class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500" name="remember">
-                <span class="ms-2 text-sm text-gray-600">{{ __('Remember me') }}</span>
-            </label>
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('password.request') }}" wire:navigate>
-                    {{ __('Forgot your password?') }}
-                </a>
+            <!-- Session Status -->
+            @if (session('status'))
+                <div class="mb-4 font-medium text-sm text-green-600">
+                    {{ session('status') }}
+                </div>
             @endif
 
-            <x-primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-primary-button>
+            <!-- Standard Laravel/Volt Login Form -->
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+
+                <!-- Email Address -->
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+                    <div class="mt-1">
+                        <input id="email" name="email" type="email" autocomplete="email" required autofocus
+                            class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm @error('email') border-red-500 @enderror"
+                            value="{{ old('email') }}">
+                    </div>
+                    @error('email')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Password -->
+                <div class="mt-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <div class="mt-1">
+                        <input id="password" name="password" type="password" autocomplete="current-password" required
+                            class="block w-full appearance-none rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-[#E91E63] focus:outline-none focus:ring-[#E91E63] sm:text-sm @error('password') border-red-500 @enderror">
+                    </div>
+                    @error('password')
+                        <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+
+                <!-- Remember Me -->
+                <div class="mt-6 flex items-center justify-between">
+                    <label for="remember_me" class="flex items-center">
+                        <input id="remember_me" name="remember" type="checkbox"
+                            class="h-4 w-4 rounded border-gray-300 text-[#E91E63] focus:ring-[#E91E63]">
+                        <span class="ml-2 block text-sm text-gray-900">Remember me</span>
+                    </label>
+
+                    @if (Route::has('password.request'))
+                        <div class="text-sm">
+                            <a href="{{ route('password.request') }}" class="font-medium text-gray-600 hover:text-[#E91E63]">
+                                Forgot your password?
+                            </a>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="mt-6">
+                    <button type="submit"
+                        class="flex w-full justify-center rounded-md bg-[#E91E63] px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-[#D81B60] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#E91E63]">
+                        Log in
+                    </button>
+                </div>
+            </form>
         </div>
-    </form>
+
+        <!-- Back to Home Link -->
+        <p class="mt-10 text-center text-sm text-gray-500">
+            <a href="{{ route('home') }}" class="font-medium text-gray-600 hover:text-[#E91E63]">
+                &larr; Back to Corporate Home
+            </a>
+        </p>
+    </div>
 </div>
