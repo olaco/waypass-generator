@@ -9,6 +9,9 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
 use App\Livewire\Waybill\WaybillApprovals;
 use Livewire\Livewire;
+use Illuminate\Support\Facades\URL;
+use App\Observers\WaybillObserver;
+use App\Models\Waybill;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -25,6 +28,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (config('app.env') !== 'local' || isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
+        URL::forceScheme('https');
+        Waybill::observe(WaybillObserver::class);
+    }
         $this->configureDefaults();
 
 
