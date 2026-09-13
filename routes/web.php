@@ -15,6 +15,7 @@ use App\Livewire\Waybill\WaybillList;
 use App\Livewire\Waybill\WaybillRejected;
 use App\Livewire\Waybill\WaybillReports;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\GatepassPdfController;
 
 // Welcome page
 Route::get('/', function () {
@@ -59,6 +60,14 @@ Route::middleware('auth')->group(function () {
 
     // ✅ LOCKED PDF ROUTE (Only works if isFullyApproved() returns true)
     Route::get('/waybills/{waybill}/pdf', [WaybillController::class, 'generatePdf'])->name('waybills.pdf');
+
+    Route::get('/gatepass/{waybill}/stream', [GatepassPdfController::class, 'stream'])
+        ->name('gatepass.stream');
+
+    Route::get('/gatepass/{waybill}/download', [GatepassPdfController::class, 'download'])
+        ->name('gatepass.download');
+
+
 });
 
 // Auth routes

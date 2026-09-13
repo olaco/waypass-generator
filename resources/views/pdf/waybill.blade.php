@@ -269,8 +269,9 @@
                     </tr>
                     <tr>
                         <td class="no-border" style="border-right: 1px solid #2b2b2b !important;">
-                            <span class="lbl">Reference No.</span>
-                            <span class="val">{{ $waybill->reference_no }}</span>
+                            <span class="lbl">Invoice No.</span>
+                            <!-- <span class="val">{{ $waybill->reference_no }}</span> -->
+                            <span class="val"></span>
                         </td>
                         <td class="no-border">
                             <span class="lbl">Status</span>
@@ -390,10 +391,10 @@
                     <div class="designation-header">
                         <strong>RECEIVING ENTITY</strong><br>
                         NAME: ______________________________<br>
-                        COMPANY: ___________________________
+                        COMPANY: ___________________________<br>
                     </div>
                     <div class="signature-bottom">
-                        SIGN & DATE: ________________________
+                        SIGN & DATE: ________________________<br>
                     </div>
                 </td>
 
@@ -493,23 +494,23 @@
     </table>
 
     {{-- =========================================================
-    GATE PASS - Show only when fully approved
+    GATE PASS NOTICE - Displayed in PDF when fully approved
     ========================================================= --}}
-    @if($waybill->gatepass_no)
-    <table>
+@if($waybill->isFullyApproved() && $waybill->gatepass_no)
+    <table style="margin-top: 6px;">
         <tr>
-            <td style="background: #e8f6ec; padding: 4px 8px; border: 1px solid #2fa84f; text-align: center;">
-                <span style="font-size: 8px; font-weight: bold; color: #1e7a34;">
-                    ✅ GATE PASS: {{ $waybill->gatepass_no }}
+            <td style="background: #e8f6ec; padding: 6px 10px; border: 1px solid #2fa84f; text-align: center;">
+                <span style="font-size: 9px; font-weight: bold; color: #1e7a34; text-transform: uppercase;">
+                     OFFICIAL GATE PASS ISSUED: {{ $waybill->gatepass_no }}
                 </span>
             </td>
         </tr>
     </table>
-    @endif
+@endif
 
     {{-- FOOTER --}}
     <div class="footer-note">
-        This document was generated electronically | <strong>WayPass System</strong> | Ref: {{ $waybill->reference_no }}
+        This document was generated electronically | <strong>WayPass System</strong>
         <br>
         <span style="font-size: 5.5px; color: #888;">
             All signatures confirm receipt and acceptance of goods in good condition.

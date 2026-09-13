@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class CreateWaybill extends Component
 {
     // Document fields
-    public $reference_no;
+    public $invoice_no;
     public $waybill_no;
     public $loaded_at;
 
@@ -28,7 +28,7 @@ class CreateWaybill extends Component
 
     // ===== VALIDATION RULES =====
     protected $rules = [
-        'reference_no' => 'required|unique:waybills',
+        'invoice_no' => 'required|unique',
         'waybill_no' => 'required|unique:waybills',
         'loaded_at' => 'nullable|date',
         'vehicle_no' => 'nullable|string|max:255',
@@ -43,7 +43,7 @@ class CreateWaybill extends Component
     ];
 
     protected $validationAttributes = [
-        'reference_no' => 'Reference Number',
+        'invoice_no' => 'Invoice Number',
         'waybill_no' => 'Waybill Number',
         'items.*.product_description' => 'Product Description',
         'items.*.batch_no' => 'Batch Number',
@@ -70,7 +70,7 @@ class CreateWaybill extends Component
         $nextId = Waybill::max('id') + 1;
 
         // Format: EB-2026-000001 (Reference No)
-        $this->reference_no = 'EB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
+        $this->invoice_no = 'EB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
 
         // Format: WB-2026-000001 (Waybill No)
         $this->waybill_no = 'WB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
@@ -111,7 +111,7 @@ class CreateWaybill extends Component
         }
 
         $waybill = Waybill::create([
-            'reference_no' => $this->reference_no,
+            'invoice_no' => $this->invoice_no,
             'waybill_no' => $this->waybill_no,
             'gatepass_no' => null,
             'loaded_at' => $this->loaded_at,

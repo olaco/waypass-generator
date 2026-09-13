@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class Waybill extends Model
 {
     protected $fillable = [
-        'reference_no',
+        'invoice_no',
         'waybill_no',
         'gatepass_no',
         'loaded_at',

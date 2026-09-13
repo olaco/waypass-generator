@@ -59,10 +59,25 @@ class WaybillDetails extends Component
         $this->waybill->refresh();
     }
 
-    // Helper to check if the waybill has passed all 3 approval steps
+    /**
+     * Helper to check if the waybill has passed all 3 approval steps
+     */
     public function getIsFullyApprovedProperty(): bool
     {
         return $this->waybill->isFullyApproved();
+    }
+
+    /**
+     * Trigger official PDF download if fully approved
+     */
+    public function downloadGatepass()
+    {
+        if (!$this->isFullyApproved) {
+            session()->flash('error', '🚫 Gatepass download is locked until all 3 approvals are completed.');
+            return;
+        }
+
+        return redirect()->route('gatepass.download', ['waybill' => $this->waybill->id]);
     }
 
     public function render()

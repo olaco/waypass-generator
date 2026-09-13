@@ -40,29 +40,6 @@
                         {{ ucfirst(str_replace('_', ' ', $waybill->status)) }}
                     </span>
 
-                    {{-- ========================================== --}}
-                    {{-- NEW: PRINT / PREVIEW BUTTONS --}}
-                    {{-- ========================================== --}}
-                    @if($waybill->isFullyApproved())
-                        {{-- ✅ FULLY APPROVED: Show Print Button --}}
-                        <a href="{{ route('waybills.pdf', $waybill->id) }}"
-                           class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                            🖨️ Print Official Waybill
-                        </a>
-                    @else
-                        {{-- ⏳ PENDING: Show Preview Button only --}}
-                        <a href="{{ route('waybills.preview', $waybill->id) }}" target="_blank"
-                           class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200">
-                            👁️ Preview Waybill (Draft)
-                        </a>
-
-                        <span class="text-gray-500 text-sm">
-                            <i class="fas fa-lock"></i>
-                            Waiting for: <strong>{{ $waybill->getNextApproverRole() }}</strong>
-                        </span>
-                    @endif
-                    {{-- ========================================== --}}
-
                     {{-- Submit for Approval Button - ONLY for Distribution Officer and ONLY when draft --}}
                     @if($isDistOfficer && $waybill->status === 'draft')
                         <button wire:click="submitForApproval"
@@ -74,7 +51,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 <div>
                     <p class="text-sm text-gray-500">Prepared By</p>
                     <p class="font-medium">{{ $waybill->preparer->name ?? 'N/A' }}</p>
@@ -92,6 +69,49 @@
                     <p class="text-sm text-gray-500">Gate Pass</p>
                     <p class="font-medium text-green-600">{{ $waybill->gatepass_no }}</p>
                 </div>
+                @endif
+            </div>
+
+            {{-- ========================================== --}}
+            {{-- GATEPASS & WAYBILL ACTION CONTROLS         --}}
+            {{-- ========================================== --}}
+            <div class="pt-4 border-t border-gray-200 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-3">
+                    {{-- 👁️ Preview Gatepass: Always accessible across all statuses --}}
+                    <a href="{{ route('gatepass.stream', $waybill->id) }}" target="_blank"
+                       class="inline-flex items-center bg-slate-700 hover:bg-slate-800 text-white font-bold py-2 px-4 rounded-lg transition duration-200 text-sm shadow-sm">
+                        <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Preview Gatepass
+                    </a>
+
+                    {{-- 📥 Download Gatepass: Enabled ONLY after full approval --}}
+                    @if($this->isFullyApproved)
+                        <button wire:click="downloadGatepass"
+                                class="inline-flex items-center bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-4 rounded-lg transition duration-200 text-sm shadow-sm">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                            </svg>
+                            Download Official Gatepass
+                        </button>
+                    @else
+                        <button disabled
+                                title="Download locked until Warehouse, Audit, and Supply Chain approvals are completed"
+                                class="inline-flex items-center bg-gray-200 text-gray-500 border border-gray-300 font-bold py-2 px-4 rounded-lg text-sm cursor-not-allowed shadow-none opacity-80">
+                            <svg class="w-4 h-4 mr-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Download Locked (Pending Approval)
+                        </button>
+                    @endif
+                </div>
+
+                @if(!$waybill->isFullyApproved())
+                    <span class="text-gray-500 text-xs sm:text-sm">
+                        Waiting for: <strong>{{ $waybill->getNextApproverRole() }}</strong>
+                    </span>
                 @endif
             </div>
         </div>
