@@ -5,11 +5,12 @@ namespace App\Livewire\Waybill;
 use App\Models\Waybill;
 use Livewire\Component;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class CreateWaybill extends Component
 {
     // Document fields
-    public $invoice_no;
+    public $reference_no;
     public $waybill_no;
     public $loaded_at;
 
@@ -28,8 +29,8 @@ class CreateWaybill extends Component
 
     // ===== VALIDATION RULES =====
     protected $rules = [
-        'invoice_no' => 'required|unique',
-        'waybill_no' => 'required|unique:waybills',
+        'reference_no' => 'required|unique:waybills,reference_no',
+        'waybill_no' => 'required|unique:waybills,waybill_no',
         'loaded_at' => 'nullable|date',
         'vehicle_no' => 'nullable|string|max:255',
         'vehicle_owner' => 'nullable|string|max:255',
@@ -38,12 +39,12 @@ class CreateWaybill extends Component
         'remover_name' => 'nullable|string|max:255',
         'items.*.product_description' => 'required|string',
         'items.*.batch_no' => 'required|string',
-        'items.*.no_of_cartons' => 'required|integer|min:1',
+        'items.*.no_of_cartons' => 'required|integer|min:0',
         'items.*.quantity_loaded' => 'required|integer|min:1',
     ];
 
     protected $validationAttributes = [
-        'invoice_no' => 'Invoice Number',
+        'reference_no' => 'Reference Number',
         'waybill_no' => 'Waybill Number',
         'items.*.product_description' => 'Product Description',
         'items.*.batch_no' => 'Batch Number',
@@ -70,8 +71,7 @@ class CreateWaybill extends Component
         $nextId = Waybill::max('id') + 1;
 
         // Format: EB-2026-000001 (Reference No)
-        $this->invoice_no = 'EB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
-
+        $this->reference_no = 'EB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
         // Format: WB-2026-000001 (Waybill No)
         $this->waybill_no = 'WB-' . date('Y') . '-' . str_pad($nextId, 6, '0', STR_PAD_LEFT);
     }
@@ -97,40 +97,47 @@ class CreateWaybill extends Component
     }
 
     // ===== SAVE =====
+public function save()
+{
+    $validated = $this->validate();
 
-    public function save()
-    {
-        $this->validate();
+    $preparedBy = Auth::id();
 
-        // Get the authenticated user ID
-        $preparedBy = Auth::id();
+    if (!$preparedBy) {
+        session()->flash('error', 'You must be logged in to create a waybill.');
+        return;
+    }
 
-        if (!$preparedBy) {
-            session()->flash('error', 'You must be logged in to create a waybill.');
-            return;
-        }
+    $waybill = DB::transaction(function () use ($validated, $preparedBy) {
 
         $waybill = Waybill::create([
-            'invoice_no' => $this->invoice_no,
-            'waybill_no' => $this->waybill_no,
+            'reference_no' => $validated['reference_no'],
+            'waybill_no' => $validated['waybill_no'],
             'gatepass_no' => null,
-            'loaded_at' => $this->loaded_at,
+            'loaded_at' => $validated['loaded_at'],
             'status' => 'draft',
-            'prepared_by' => $preparedBy,  // Auth user
-            'vehicle_no' => $this->vehicle_no,
-            'vehicle_owner' => $this->vehicle_owner,
-            'delivery_to' => $this->delivery_to,
-            'remarks' => $this->remarks,
-            'remover_name' => $this->remover_name,
+            'prepared_by' => $preparedBy,
+            'vehicle_no' => $validated['vehicle_no'],
+            'vehicle_owner' => $validated['vehicle_owner'],
+            'delivery_to' => $validated['delivery_to'],
+            'remarks' => $validated['remarks'],
+            'remover_name' => $validated['remover_name'],
         ]);
 
-        foreach ($this->items as $item) {
+        foreach ($validated['items'] ?? [] as $item) {
             $waybill->items()->create($item);
         }
 
-        session()->flash('message', 'Waybill created successfully!');
-        return redirect()->route('waybills.index');
-    }
+        return $waybill;
+    });
+
+    session()->flash('message', 'Waybill created successfully!');
+
+    return redirect()->route('waybills.index');
+}
+
+
+    // ========================
 
     // ===== RENDER =====
 

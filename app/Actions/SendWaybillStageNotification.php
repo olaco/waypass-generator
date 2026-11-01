@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Models\Waybill;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 class SendWaybillStageNotification
 {
@@ -18,33 +19,79 @@ class SendWaybillStageNotification
         $recipients = collect();
 
         if ($actionType === 'pending_approval') {
-            // Map approval stages to exact user roles in your DB
             $roleMap = [
-                'pending_warehouse'    => 'warehouse_manager',
-                'pending'              => 'warehouse_manager',
-                'submitted'            => 'warehouse_manager',
-                'pending_auditor'      => 'auditor',
-                'pending_audit'        => 'auditor',
+                'pending_warehouse' => 'warehouse_manager',
+                'pending_auditor' => 'auditor',
                 'pending_supply_chain' => 'supply_chain_manager',
             ];
 
-            $targetRole = $roleMap[$waybill->status] ?? 'warehouse_manager';
+            if (! isset($roleMap[$waybill->status])) {
+                Log::warning(
+                    "WayPass: Unknown approval status '{$waybill->status}' for Waybill #{$waybill->waybill_no}. No notification sent."
+                );
+
+                return;
+            }
+
+            $targetRole = $roleMap[$waybill->status];
+
             $recipients = User::where('role', $targetRole)->get();
 
         } elseif ($actionType === 'fully_approved') {
-            // Updated 'distribution_officer' to 'dist_officer' to match DB schema
             $recipients = User::where('id', $waybill->prepared_by)
                 ->orWhere('role', 'dist_officer')
                 ->get();
+
+        } else {
+            Log::warning(
+                "WayPass: Unknown notification action '{$actionType}' for Waybill #{$waybill->waybill_no}."
+            );
+
+            return;
         }
 
         if ($recipients->isEmpty()) {
-            Log::warning("WayPass Mailer Warning: No recipient found for role matching status '{$waybill->status}' on Waybill #{$waybill->waybill_no}");
+            Log::warning(
+                "WayPass: No notification recipient found for status '{$waybill->status}' on Waybill #{$waybill->waybill_no}."
+            );
+
             return;
         }
 
         foreach ($recipients as $recipient) {
-            Mail::to($recipient->email)->send(new WaybillStageMail($waybill, $actionType));
+            if (
+                empty($recipient->email) ||
+                ! filter_var($recipient->email, FILTER_VALIDATE_EMAIL)
+            ) {
+                Log::warning(
+                    "WayPass: Skipping user ID {$recipient->id} because the email address is missing or invalid."
+                );
+
+                continue;
+            }
+
+            try {
+                Mail::to($recipient->email)
+                    ->send(new WaybillStageMail($waybill, $actionType));
+
+                Log::info(
+                    "WayPass: Notification dispatched to the mail queue for Waybill #{$waybill->waybill_no}, user ID {$recipient->id}."
+                );
+
+            } catch (Throwable $exception) {
+                Log::error(
+                    "WayPass: Notification email could not be dispatched for Waybill #{$waybill->waybill_no}, user ID {$recipient->id}.",
+                    [
+                        'recipient_email' => $recipient->email,
+                        'action_type' => $actionType,
+                        'exception' => $exception::class,
+                        'error' => $exception->getMessage(),
+                    ]
+                );
+
+                // Continue attempting delivery to the remaining recipients.
+                continue;
+            }
         }
     }
 }

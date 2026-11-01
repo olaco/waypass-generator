@@ -89,3 +89,44 @@ it('forbids a non-auditor from rejecting a waybill', function () {
     expect($waybill->fresh()->status)->toBe('pending_auditor')
         ->and(WaybillApproval::where('waybill_id', $waybill->id)->count())->toBe(0);
 });
+
+it('rolls back the auditor approval if the audit record cannot be saved', function () {
+    Mail::fake();
+
+    $auditor = User::factory()->create(['role' => 'auditor']);
+    $preparer = User::factory()->create(['role' => 'dist_officer']);
+    $waybill = Waybill::create([
+        'reference_no' => 'EB-TEST-'.uniqid(),
+        'waybill_no' => 'WB-TEST-'.uniqid(),
+        'status' => 'pending_auditor',
+        'prepared_by' => $preparer->id,
+    ]);
+
+    $component = Livewire::actingAs($auditor)->test(AuditorApprovals::class)
+        ->call('openApprovalModal', $waybill->id);
+
+    WaybillApproval::creating(fn () => throw new RuntimeException('audit write failed'));
+
+    expect(fn () => $component->call('approveAsAuditor'))->toThrow(RuntimeException::class);
+
+    expect($waybill->fresh()->status)->toBe('pending_auditor')
+        ->and($waybill->fresh()->auditor_approver_name)->toBeNull();
+});
+
+it('forbids a non-auditor from opening the reject modal', function () {
+    $auditor = User::factory()->create(['role' => 'auditor']);
+    $other = User::factory()->create(['role' => 'warehouse_manager']);
+    $preparer = User::factory()->create(['role' => 'dist_officer']);
+    $waybill = Waybill::create([
+        'reference_no' => 'EB-TEST-'.uniqid(),
+        'waybill_no' => 'WB-TEST-'.uniqid(),
+        'status' => 'pending_auditor',
+        'prepared_by' => $preparer->id,
+    ]);
+
+    $component = Livewire::actingAs($auditor)->test(AuditorApprovals::class);
+
+    $this->actingAs($other);
+
+    $component->call('openRejectModal', $waybill->id)->assertForbidden();
+});

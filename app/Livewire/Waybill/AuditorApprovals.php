@@ -5,6 +5,7 @@ namespace App\Livewire\Waybill;
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -103,24 +104,25 @@ class AuditorApprovals extends Component
             return;
         }
 
-        // Update waybill
-        $waybill->update([
-            'auditor_approver_name' => Auth::user()->name,
-            'auditor_approved_at' => now(),
-            'status' => 'pending_supply_chain',
-        ]);
+        // Update waybill and create approval record together
+        DB::transaction(function () use ($waybill) {
+            $waybill->update([
+                'auditor_approver_name' => Auth::user()->name,
+                'auditor_approved_at' => now(),
+                'status' => 'pending_supply_chain',
+            ]);
 
-        // Create approval record
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'auditor',
-            'status' => 'approved',
-            'remarks' => 'Approved by Auditor',
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'auditor',
+                'status' => 'approved',
+                'remarks' => 'Approved by Auditor',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+        });
 
         session()->flash('message', '✅ Waybill approved by Auditor and forwarded to Supply Chain Manager.');
         $this->closeApprovalModal();
@@ -132,6 +134,7 @@ class AuditorApprovals extends Component
      */
     public function openRejectModal($waybillId)
     {
+        $this->authorizeAuditorStage();
         $this->waybillToReject = Waybill::find($waybillId);
         $this->showRejectModal = true;
         $this->rejectionReason = '';
@@ -171,22 +174,23 @@ class AuditorApprovals extends Component
             return;
         }
 
-        // Update waybill status to rejected
-        $waybill->update([
-            'status' => 'rejected',
-        ]);
+        // Update status and create rejection record together
+        DB::transaction(function () use ($waybill) {
+            $waybill->update([
+                'status' => 'rejected',
+            ]);
 
-        // Create rejection record
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'auditor',
-            'status' => 'rejected',
-            'remarks' => $this->rejectionReason,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'auditor',
+                'status' => 'rejected',
+                'remarks' => $this->rejectionReason,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+        });
 
         session()->flash('message', '❌ Waybill rejected by Auditor.');
         $this->closeRejectModal();

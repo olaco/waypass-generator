@@ -106,3 +106,20 @@ it('refuses to reject a waybill that moved on after the rejection modal was open
     expect($waybill->fresh()->status)->toBe('pending_auditor')
         ->and(WaybillApproval::where('waybill_id', $waybill->id)->count())->toBe(0);
 });
+
+it('rolls back the warehouse approval if the audit record cannot be saved', function () {
+    Mail::fake();
+
+    $manager = User::factory()->create(['role' => 'warehouse_manager']);
+    $waybill = approvalTestWaybill('pending_warehouse');
+
+    $component = Livewire::actingAs($manager)->test(WarehouseApprovals::class)
+        ->call('openApprovalModal', $waybill->id);
+
+    WaybillApproval::creating(fn () => throw new RuntimeException('audit write failed'));
+
+    expect(fn () => $component->call('approveAsWarehouse'))->toThrow(RuntimeException::class);
+
+    expect($waybill->fresh()->status)->toBe('pending_warehouse')
+        ->and($waybill->fresh()->warehouse_approver_name)->toBeNull();
+});

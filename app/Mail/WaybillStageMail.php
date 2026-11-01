@@ -14,16 +14,32 @@ class WaybillStageMail extends Mailable implements ShouldQueue
 {
     use Queueable, SerializesModels;
 
+    private const ACTION_TYPES = ['pending_approval', 'fully_approved'];
+
+    public int $tries = 3;
+
+    public array $backoff = [60, 300];
+
+    public int $timeout = 30;
+
+    public string $stageStatus;
+
     public function __construct(
         public Waybill $waybill,
-        public string $actionType // 'pending_approval' or 'fully_approved'
-    ) {}
+        public string $actionType
+    ) {
+        if (! in_array($actionType, self::ACTION_TYPES, true)) {
+            throw new \InvalidArgumentException("Unsupported waybill notification action type: {$actionType}");
+        }
+        $this->stageStatus = $waybill->status;
+    }
 
     public function envelope(): Envelope
     {
         $subject = match ($this->actionType) {
             'pending_approval' => "URGENT: Waybill Action Required - {$this->waybill->waybill_no}",
-            'fully_approved'   => "FINAL APPROVAL: Waybill Completed - {$this->waybill->waybill_no}",
+            'fully_approved' => "FINAL APPROVAL: Waybill Completed - {$this->waybill->waybill_no}",
+            default => throw new \InvalidArgumentException("Unsupported waybill notification action type: {$this->actionType}"),
         };
 
         return new Envelope(

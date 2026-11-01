@@ -5,6 +5,7 @@ namespace App\Livewire\Waybill;
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -88,22 +89,24 @@ class WarehouseApprovals extends Component
             return;
         }
 
-        $waybill->update([
-            'warehouse_approver_name' => Auth::user()->name,
-            'warehouse_approved_at' => now(),
-            'status' => 'pending_auditor',
-        ]);
+        DB::transaction(function () use ($waybill) {
+            $waybill->update([
+                'warehouse_approver_name' => Auth::user()->name,
+                'warehouse_approved_at' => now(),
+                'status' => 'pending_auditor',
+            ]);
 
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'warehouse_manager',
-            'status' => 'approved',
-            'remarks' => 'Approved by Warehouse Manager',
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'warehouse_manager',
+                'status' => 'approved',
+                'remarks' => 'Approved by Warehouse Manager',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+        });
 
         session()->flash('message', '✅ Waybill approved by Warehouse Manager and forwarded to Auditor.');
         $this->closeApprovalModal();
@@ -145,20 +148,22 @@ class WarehouseApprovals extends Component
             return;
         }
 
-        $waybill->update([
-            'status' => 'rejected',
-        ]);
+        DB::transaction(function () use ($waybill) {
+            $waybill->update([
+                'status' => 'rejected',
+            ]);
 
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'warehouse_manager',
-            'status' => 'rejected',
-            'remarks' => $this->rejectionReason,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'warehouse_manager',
+                'status' => 'rejected',
+                'remarks' => $this->rejectionReason,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+        });
 
         session()->flash('message', '❌ Waybill rejected by Warehouse Manager.');
         $this->closeRejectModal();

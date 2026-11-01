@@ -105,3 +105,26 @@ it('refuses to reject a waybill that moved on after the rejection modal was open
     expect($waybill->fresh()->status)->toBe('approved')
         ->and(WaybillApproval::where('waybill_id', $waybill->id)->count())->toBe(0);
 });
+
+it('rolls back the supply chain approval if the audit record cannot be saved', function () {
+    Mail::fake();
+
+    $manager = User::factory()->create(['role' => 'supply_chain_manager']);
+    $preparer = User::factory()->create(['role' => 'dist_officer']);
+    $waybill = Waybill::create([
+        'reference_no' => 'EB-TEST-'.uniqid(),
+        'waybill_no' => 'WB-TEST-'.uniqid(),
+        'status' => 'pending_supply_chain',
+        'prepared_by' => $preparer->id,
+    ]);
+
+    $component = Livewire::actingAs($manager)->test(SupplyChainApprovals::class)
+        ->call('openApprovalModal', $waybill->id);
+
+    WaybillApproval::creating(fn () => throw new RuntimeException('audit write failed'));
+
+    expect(fn () => $component->call('approveAsSupplyChain'))->toThrow(RuntimeException::class);
+
+    expect($waybill->fresh()->status)->toBe('pending_supply_chain')
+        ->and($waybill->fresh()->gatepass_no)->toBeNull();
+});

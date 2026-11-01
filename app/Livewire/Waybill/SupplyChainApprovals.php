@@ -5,6 +5,7 @@ namespace App\Livewire\Waybill;
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -88,26 +89,30 @@ class SupplyChainApprovals extends Component
             return;
         }
 
-        // Generate Gate Pass
-        $gatepassNo = 'GP-'.date('Y').'-'.str_pad(Waybill::count() + 1, 6, '0', STR_PAD_LEFT);
+        $gatepassNo = DB::transaction(function () use ($waybill) {
+            // Generate Gate Pass
+            $gatepassNo = 'GP-'.date('Y').'-'.str_pad(Waybill::count() + 1, 6, '0', STR_PAD_LEFT);
 
-        $waybill->update([
-            'supply_chain_approver_name' => Auth::user()->name,
-            'supply_chain_approved_at' => now(),
-            'status' => 'approved',
-            'gatepass_no' => $gatepassNo,
-        ]);
+            $waybill->update([
+                'supply_chain_approver_name' => Auth::user()->name,
+                'supply_chain_approved_at' => now(),
+                'status' => 'approved',
+                'gatepass_no' => $gatepassNo,
+            ]);
 
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'supply_chain_manager',
-            'status' => 'approved',
-            'remarks' => 'Approved by Supply Chain Manager',
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'supply_chain_manager',
+                'status' => 'approved',
+                'remarks' => 'Approved by Supply Chain Manager',
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+
+            return $gatepassNo;
+        });
 
         session()->flash('message', '✅ Waybill fully approved! Gate Pass: '.$gatepassNo);
         $this->closeApprovalModal();
@@ -148,20 +153,22 @@ class SupplyChainApprovals extends Component
             return;
         }
 
-        $waybill->update([
-            'status' => 'rejected',
-        ]);
+        DB::transaction(function () use ($waybill) {
+            $waybill->update([
+                'status' => 'rejected',
+            ]);
 
-        WaybillApproval::create([
-            'waybill_id' => $waybill->id,
-            'approver_id' => Auth::id(),
-            'stage' => 'supply_chain_manager',
-            'status' => 'rejected',
-            'remarks' => $this->rejectionReason,
-            'ip_address' => request()->ip(),
-            'user_agent' => request()->userAgent(),
-            'approved_at' => now(),
-        ]);
+            WaybillApproval::create([
+                'waybill_id' => $waybill->id,
+                'approver_id' => Auth::id(),
+                'stage' => 'supply_chain_manager',
+                'status' => 'rejected',
+                'remarks' => $this->rejectionReason,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'approved_at' => now(),
+            ]);
+        });
 
         session()->flash('message', '❌ Waybill rejected by Supply Chain Manager.');
         $this->closeRejectModal();
