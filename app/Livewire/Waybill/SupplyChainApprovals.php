@@ -4,20 +4,26 @@ namespace App\Livewire\Waybill;
 
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
 
 class SupplyChainApprovals extends Component
 {
     use WithPagination;
 
     public $search = '';
+
     public $perPage = 10;
+
     public $selectedWaybill = null;
+
     public $showApprovalModal = false;
+
     public $rejectionReason = '';
+
     public $showRejectModal = false;
+
     public $waybillToReject = null;
 
     protected $rules = [
@@ -26,6 +32,19 @@ class SupplyChainApprovals extends Component
 
     protected $listeners = ['refreshComponent' => '$refresh'];
 
+    public function mount(): void
+    {
+        $this->authorizeSupplyChainStage();
+    }
+
+    private function authorizeSupplyChainStage(): void
+    {
+        abort_unless(
+            auth()->user()?->hasRole('supply_chain_manager'),
+            403
+        );
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -33,6 +52,7 @@ class SupplyChainApprovals extends Component
 
     public function openApprovalModal($waybillId)
     {
+        $this->authorizeSupplyChainStage();
         $this->selectedWaybill = Waybill::with(['items', 'preparer'])->find($waybillId);
         $this->showApprovalModal = true;
     }
@@ -45,27 +65,31 @@ class SupplyChainApprovals extends Component
 
     public function approveAsSupplyChain()
     {
-        if (!$this->selectedWaybill) {
+        $this->authorizeSupplyChainStage();
+        if (! $this->selectedWaybill) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->selectedWaybill;
+        $waybill = Waybill::findOrFail($this->selectedWaybill->id);
 
         if ($waybill->isSupplyChainApproved()) {
             session()->flash('error', 'This waybill has already been approved by Supply Chain Manager.');
             $this->closeApprovalModal();
+
             return;
         }
 
         if ($waybill->status !== 'pending_supply_chain') {
             session()->flash('error', 'This waybill is not pending supply chain approval.');
             $this->closeApprovalModal();
+
             return;
         }
 
         // Generate Gate Pass
-        $gatepassNo = 'GP-' . date('Y') . '-' . str_pad(Waybill::count() + 1, 6, '0', STR_PAD_LEFT);
+        $gatepassNo = 'GP-'.date('Y').'-'.str_pad(Waybill::count() + 1, 6, '0', STR_PAD_LEFT);
 
         $waybill->update([
             'supply_chain_approver_name' => Auth::user()->name,
@@ -85,13 +109,14 @@ class SupplyChainApprovals extends Component
             'approved_at' => now(),
         ]);
 
-        session()->flash('message', '✅ Waybill fully approved! Gate Pass: ' . $gatepassNo);
+        session()->flash('message', '✅ Waybill fully approved! Gate Pass: '.$gatepassNo);
         $this->closeApprovalModal();
         $this->dispatch('refreshComponent');
     }
 
     public function openRejectModal($waybillId)
     {
+        $this->authorizeSupplyChainStage();
         $this->waybillToReject = Waybill::find($waybillId);
         $this->showRejectModal = true;
         $this->rejectionReason = '';
@@ -106,14 +131,22 @@ class SupplyChainApprovals extends Component
 
     public function rejectWaybill()
     {
+        $this->authorizeSupplyChainStage();
         $this->validate();
 
-        if (!$this->waybillToReject) {
+        if (! $this->waybillToReject) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->waybillToReject;
+        $waybill = Waybill::findOrFail($this->waybillToReject->id);
+        if ($waybill->status !== 'pending_supply_chain') {
+            session()->flash('error', 'This waybill is not pending supply chain approval.');
+            $this->closeRejectModal();
+
+            return;
+        }
 
         $waybill->update([
             'status' => 'rejected',
@@ -139,10 +172,10 @@ class SupplyChainApprovals extends Component
     {
         $waybills = Waybill::with(['items', 'preparer', 'approvals.approver'])
             ->where('status', 'pending_supply_chain')
-            ->when($this->search, function($query) {
-                $query->where(function($q) {
-                    $q->where('reference_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('waybill_no', 'like', '%' . $this->search . '%');
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('reference_no', 'like', '%'.$this->search.'%')
+                        ->orWhere('waybill_no', 'like', '%'.$this->search.'%');
                 });
             })
             ->latest()

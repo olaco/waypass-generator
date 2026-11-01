@@ -4,20 +4,26 @@ namespace App\Livewire\Waybill;
 
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
 
 class WarehouseApprovals extends Component
 {
     use WithPagination;
 
     public $search = '';
+
     public $perPage = 10;
+
     public $selectedWaybill = null;
+
     public $showApprovalModal = false;
+
     public $rejectionReason = '';
+
     public $showRejectModal = false;
+
     public $waybillToReject = null;
 
     protected $rules = [
@@ -26,6 +32,19 @@ class WarehouseApprovals extends Component
 
     protected $listeners = ['refreshComponent' => '$refresh'];
 
+    public function mount(): void
+    {
+        $this->authorizeWarehouseStage();
+    }
+
+    private function authorizeWarehouseStage(): void
+    {
+        abort_unless(
+            auth()->user()?->hasRole('warehouse_manager'),
+            403
+        );
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();
@@ -33,6 +52,7 @@ class WarehouseApprovals extends Component
 
     public function openApprovalModal($waybillId)
     {
+        $this->authorizeWarehouseStage();
         $this->selectedWaybill = Waybill::with(['items', 'preparer', 'approvals.approver'])->find($waybillId);
         $this->showApprovalModal = true;
     }
@@ -45,22 +65,26 @@ class WarehouseApprovals extends Component
 
     public function approveAsWarehouse()
     {
-        if (!$this->selectedWaybill) {
+        $this->authorizeWarehouseStage();
+        if (! $this->selectedWaybill) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->selectedWaybill;
+        $waybill = Waybill::findOrFail($this->selectedWaybill->id);
 
         if ($waybill->status !== 'pending_warehouse') {
             session()->flash('error', 'This waybill is not pending warehouse approval.');
             $this->closeApprovalModal();
+
             return;
         }
 
         if ($waybill->isWarehouseApproved()) {
             session()->flash('error', 'This waybill has already been approved by Warehouse Manager.');
             $this->closeApprovalModal();
+
             return;
         }
 
@@ -88,6 +112,7 @@ class WarehouseApprovals extends Component
 
     public function openRejectModal($waybillId)
     {
+        $this->authorizeWarehouseStage();
         $this->waybillToReject = Waybill::find($waybillId);
         $this->showRejectModal = true;
         $this->rejectionReason = '';
@@ -102,18 +127,21 @@ class WarehouseApprovals extends Component
 
     public function rejectWaybill()
     {
+        $this->authorizeWarehouseStage();
         $this->validate();
 
-        if (!$this->waybillToReject) {
+        if (! $this->waybillToReject) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->waybillToReject;
+        $waybill = Waybill::findOrFail($this->waybillToReject->id);
 
         if ($waybill->status !== 'pending_warehouse') {
             session()->flash('error', 'This waybill is not pending warehouse approval.');
             $this->closeRejectModal();
+
             return;
         }
 
@@ -141,10 +169,10 @@ class WarehouseApprovals extends Component
     {
         $waybills = Waybill::with(['items', 'preparer', 'approvals.approver'])
             ->where('status', 'pending_warehouse')
-            ->when($this->search, function($query) {
-                $query->where(function($q) {
-                    $q->where('reference_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('waybill_no', 'like', '%' . $this->search . '%');
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('reference_no', 'like', '%'.$this->search.'%')
+                        ->orWhere('waybill_no', 'like', '%'.$this->search.'%');
                 });
             })
             ->latest()

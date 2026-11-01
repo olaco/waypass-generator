@@ -4,20 +4,26 @@ namespace App\Livewire\Waybill;
 
 use App\Models\Waybill;
 use App\Models\WaybillApproval;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Component;
 use Livewire\WithPagination;
-use Illuminate\Support\Facades\Auth;
 
 class AuditorApprovals extends Component
 {
     use WithPagination;
 
     public $search = '';
+
     public $perPage = 10;
+
     public $selectedWaybill = null;
+
     public $showApprovalModal = false;
+
     public $rejectionReason = '';
+
     public $showRejectModal = false;
+
     public $waybillToReject = null;
 
     protected $rules = [
@@ -25,6 +31,19 @@ class AuditorApprovals extends Component
     ];
 
     protected $listeners = ['refreshComponent' => '$refresh'];
+
+    public function mount(): void
+    {
+        $this->authorizeAuditorStage();
+    }
+
+    private function authorizeAuditorStage(): void
+    {
+        abort_unless(
+            auth()->user()?->hasRole('auditor'),
+            403
+        );
+    }
 
     /**
      * Reset pagination when search updates
@@ -39,6 +58,7 @@ class AuditorApprovals extends Component
      */
     public function openApprovalModal($waybillId)
     {
+        $this->authorizeAuditorStage();
         $this->selectedWaybill = Waybill::with(['items', 'preparer', 'approvals.approver'])->find($waybillId);
         $this->showApprovalModal = true;
     }
@@ -57,18 +77,21 @@ class AuditorApprovals extends Component
      */
     public function approveAsAuditor()
     {
+        $this->authorizeAuditorStage();
         // Validate that a waybill is selected
-        if (!$this->selectedWaybill) {
+        if (! $this->selectedWaybill) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->selectedWaybill;
+        $waybill = Waybill::findOrFail($this->selectedWaybill->id);
 
         // Check if status is pending_auditor
         if ($waybill->status !== 'pending_auditor') {
             session()->flash('error', 'This waybill is not pending auditor approval.');
             $this->closeApprovalModal();
+
             return;
         }
 
@@ -76,6 +99,7 @@ class AuditorApprovals extends Component
         if ($waybill->isAuditApproved()) {
             session()->flash('error', 'This waybill has already been approved by Auditor.');
             $this->closeApprovalModal();
+
             return;
         }
 
@@ -128,19 +152,22 @@ class AuditorApprovals extends Component
      */
     public function rejectWaybill()
     {
+        $this->authorizeAuditorStage();
         $this->validate();
 
-        if (!$this->waybillToReject) {
+        if (! $this->waybillToReject) {
             session()->flash('error', 'No waybill selected.');
+
             return;
         }
 
-        $waybill = $this->waybillToReject;
+        $waybill = Waybill::findOrFail($this->waybillToReject->id);
 
         // Check if status is pending_auditor
         if ($waybill->status !== 'pending_auditor') {
             session()->flash('error', 'This waybill is not pending auditor approval.');
             $this->closeRejectModal();
+
             return;
         }
 
@@ -170,10 +197,10 @@ class AuditorApprovals extends Component
     {
         $waybills = Waybill::with(['items', 'preparer', 'approvals.approver'])
             ->where('status', 'pending_auditor')
-            ->when($this->search, function($query) {
-                $query->where(function($q) {
-                    $q->where('reference_no', 'like', '%' . $this->search . '%')
-                      ->orWhere('waybill_no', 'like', '%' . $this->search . '%');
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('reference_no', 'like', '%'.$this->search.'%')
+                        ->orWhere('waybill_no', 'like', '%'.$this->search.'%');
                 });
             })
             ->latest()
